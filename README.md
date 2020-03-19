@@ -15,6 +15,11 @@ Sadly this has only been tested on 4k resolution, but in theory should work on a
 
 ## How to run this
 
+You can download a packaged binary available in the [releases page](https://github.com/AudriusButkevicius/hotsdraft-overlay/releases)
+This ships all required libraries other than Tessaract, which you still need to install externally and make sure it's at the right path.
+
+If you don't trust the binary, you can always run it yourself:
+
 1. Install Python 3+
 2. Install Tesseract. Tesseract application should be at "C:\Program Files\Tesseract-OCR\tesseract.exe" or the path in `detection.py` should be modified. 
 3. Clone the repo
