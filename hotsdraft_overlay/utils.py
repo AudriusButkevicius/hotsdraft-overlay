@@ -1,4 +1,6 @@
 import logging
+import pathlib
+import sys
 from typing import Optional
 
 import cv2
@@ -85,3 +87,11 @@ def monkey_patch_exception_hook():
         return real_hook(exception_type, value, traceback)
 
     sys.excepthook = monkey_patched_exception_hook
+
+
+def get_root():
+    try:
+        # PyInstaller creates a temp folder and stores path in _MEIPASS
+        return pathlib.Path(sys._MEIPASS).absolute()
+    except Exception:
+        return pathlib.Path(__file__).parent.absolute()

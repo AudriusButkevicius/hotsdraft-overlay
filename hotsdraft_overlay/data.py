@@ -1,6 +1,4 @@
 import json
-import os
-import pathlib
 import tempfile
 from typing import List, Optional
 
@@ -43,13 +41,16 @@ class DataProvider(object):
         return self.__map_to_id.get(map_name)
 
     def __populate_portraits(self):
-        for path in os.listdir("portraits"):
+        portraits_directory = utils.get_root() / "portraits"
+        for path_item in portraits_directory.iterdir():
+            path = path_item.absolute().as_posix()
+
             # Load portrait
-            image = cv2.imread("portraits/" + path)
+            image = cv2.imread(path)
 
             features = utils.extract_features(image)
 
-            hero_name = path.replace('.png', '').lower()
+            hero_name = path_item.stem.replace('.png', '').lower()
 
             hero = self.get_hero_by_name(hero_name)
             if not hero:
@@ -75,8 +76,7 @@ class DataProvider(object):
         #
         # For heroes add:  sed "s/'//g;s/-//g;s/\.//g"
 
-        parent_dir = pathlib.Path(__file__).parent.absolute()
-        data_file = parent_dir / "data.json"
+        data_file = utils.get_root() / "data.json"
         with data_file.open() as fd:
             data = json.load(fd)
             self.__map_to_id = data['maps']
