@@ -4,7 +4,7 @@ draws overlay with results.
 
 ![Example](./example.png)
 
-This works purely based on screenshots and does not read or modify the games memory, so is a perfectly legal application in terms of Blizzard terms of service.
+This works purely based on screenshots and does not read or modify the games memory, therefore in my belief, is a perfectly legal application in terms of Blizzard T&C.
 
 Sadly this has only been tested on 4k resolution, but in theory should work on a smaller resolution as well. Font sizes might need adjusting.
 
