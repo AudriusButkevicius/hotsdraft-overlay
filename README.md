@@ -4,6 +4,8 @@ draws overlay with results.
 
 ![Example](./example.png)
 
+This works purely based on screenshots and does not read or modify the games memory, so is a perfectly legal application in terms of Blizzard terms of service.
+
 Sadly this has only been tested on 4k resolution, but in theory should work on a smaller resolution as well. Font sizes might need adjusting.
 
 ## Pre-requisites
@@ -28,6 +30,12 @@ If you want to work on features that work on image processing, you can swap Wind
 off screenshots being fed from a directory. There are a few debug flags left in detection code to display subrectangles produced screenshot slicing code.
 
 If you are working on developing a new layout, I suggest you switch to a ScreenshotCanvas, uncomment the line in `runner.py` redirecting application flow into `run_in_layout_build_mode`. Pressing `F8` in that mode reloads the file with the layout code and re-renders it.
+
+## Known issues
+
+1. Heroes with portraits with little features (lookin at you Malthael) sometimes fail to be detected
+2. As of 2020-03-19, [hotsdraft.com](http://hotsdraft.com) does not include Deathwing
+3. False-positive detections which should be addressed by item 6 in "Things that I think are worth working on"
 
 ## Things that I think are worth working on
 
