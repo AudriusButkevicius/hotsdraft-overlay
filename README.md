@@ -52,3 +52,4 @@ If you are working on developing a new layout, I suggest you switch to a Screens
    the detection logic could be improved to permit only a single match with the highest number of matched features.
 7. Add support for auto-detection/auto-display when in draft. This should be done after 5 is done, effectively only in draft when
    found a valid map. This would also enable auto-hide when draft finishes. Enables auto-refreshing.
+8. Package the application with py2exe for novice users to download, use Github CI to produce that.
