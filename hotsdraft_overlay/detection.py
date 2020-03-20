@@ -1,6 +1,6 @@
 import logging
 import os.path
-from typing import Optional, List, Any
+from typing import Optional, List, Any, Tuple
 
 import cv2
 import numpy as np
@@ -34,8 +34,8 @@ class Detector(object):
         cuts = self.__get_image_cuts(image)
 
         if show_cuts:
-            for cut in cuts:
-                cv2.imshow(cut.region.name, cut.image)
+            for i, cut in enumerate(cuts):
+                cv2.imshow(cut.region.name + " " + str(i), cut.image)
                 cv2.waitKey(0)
 
         # Get the map we're playing, if we can't get that, we're probably not in draft.
@@ -64,18 +64,28 @@ class Detector(object):
                 logging.debug("Cut %s produced no key points" % cut)
                 continue
 
+            best_score = 0
+            best_match = None
+
             for portrait in self.__data_provider.get_portraits():
                 try:
                     all_matches = utils.match_features(portrait.features, cut_features)
 
                     # Apply ratio test
                     good_matches = []
+                    score = 0
                     for m, n in all_matches:
                         if m.distance < 0.7 * n.distance:
                             good_matches.append(m)
+                            score += m.distance ** 2 + n.distance ** 2
 
                     if len(good_matches) < 10:
                         logging.debug("Skipping %s as got %d matches", portrait.hero.name, len(good_matches))
+                        continue
+
+                    if score < best_score:
+                        logging.debug("Skipping %s as got %.2f score vs current best %.2f", portrait.hero.name, score,
+                                      best_score)
                         continue
 
                     bounding_box = self.__get_bounding_box(portrait, cut_features, good_matches)
@@ -101,21 +111,24 @@ class Detector(object):
                         utils.add_offset_to_point(bounding_box.bottom_right, cut.offset),
                     )
 
-                    draft_hero = DraftHero(portrait.hero.name, portrait.hero.id, locked, bounding_box_with_offset,
+                    best_match = DraftHero(portrait.hero.name, portrait.hero.id, locked, bounding_box_with_offset,
                                            cut.region)
-
-                    if cut.region == Region.ALLY_PICKS:
-                        state.ally_picks.append(draft_hero)
-                    elif cut.region == Region.ENEMY_PICKS:
-                        state.enemy_picks.append(draft_hero)
-                    elif cut.region == Region.ALLY_BANS:
-                        state.ally_bans.append(draft_hero)
-                    elif cut.region == Region.ENEMY_BANS:
-                        state.enemy_bans.append(draft_hero)
-                    else:
-                        raise RuntimeError("Unhandled cut region")
+                    best_score = score
+                    logging.debug("%s is the current best match with score %.2f", portrait.hero.name, score)
                 except Exception as e:
                     logging.exception("Exception while processing %s" % portrait.hero.name)
+
+            if best_match is not None:
+                if cut.region == Region.ALLY_PICKS:
+                    state.ally_picks.append(best_match)
+                elif cut.region == Region.ENEMY_PICKS:
+                    state.enemy_picks.append(best_match)
+                elif cut.region == Region.ALLY_BANS:
+                    state.ally_bans.append(best_match)
+                elif cut.region == Region.ENEMY_BANS:
+                    state.enemy_bans.append(best_match)
+                else:
+                    raise RuntimeError("Unhandled cut region")
 
         # Sort by x or y, which roughly translates into slot order.
         state.ally_picks.sort(key=lambda pick: pick.bounding_box.top_left.y)
@@ -170,21 +183,65 @@ class Detector(object):
         # These offsets adjust x axis based on the height of the image, as it seems the UI elements are either
         # left or right aligned in case of wide screen monitors.
         ally_picks_offset = Point(0, int(h * 0.06))
-        ally_picks = image[ally_picks_offset.y:int(h * 0.85), ally_picks_offset.x:int(h / 3.6)].copy()
-        cuts.append(ImageCut(ally_picks, Region.ALLY_PICKS, ally_picks_offset))
+        ally_picks = image[ally_picks_offset.y:int(h * 0.85), ally_picks_offset.x:int(h / 3.6)]
+
+        cuts.extend(
+            Detector.__get_pick_portrait_slices(
+                ally_picks, ally_picks_offset, (0.47, 0.97), (0.14, 0.65), Region.ALLY_PICKS
+            )
+        )
 
         enemy_picks_offset = Point(int(w - (h / 3.6)), int(h * 0.06))
-        enemy_picks = image[enemy_picks_offset.y:int(h * 0.85), enemy_picks_offset.x:w].copy()
-        cuts.append(ImageCut(enemy_picks, Region.ENEMY_PICKS, enemy_picks_offset))
+        enemy_picks = image[enemy_picks_offset.y:int(h * 0.85), enemy_picks_offset.x:w]
+        cuts.extend(
+            Detector.__get_pick_portrait_slices(
+                enemy_picks, enemy_picks_offset, (0.03, 0.54), (0.34, 0.87), Region.ENEMY_PICKS
+            )
+        )
 
         ally_bans_offset = Point(int(h / 4), int(h / 100))
-        ally_bans = image[ally_bans_offset.y:int(h / 10), ally_bans_offset.x:int(2.05 * h / 4)].copy()
-        cuts.append(ImageCut(ally_bans, Region.ALLY_BANS, ally_bans_offset))
+        ally_bans = image[ally_bans_offset.y:int(h / 10), ally_bans_offset.x:int(2.05 * h / 4)]
+        cuts.extend(
+            Detector.__get_ban_portrait_slices(ally_bans, ally_bans_offset, Region.ALLY_BANS)
+        )
 
         enemy_bans_offset = Point(w - int(2.05 * h / 4), int(h / 100))
-        enemy_bans = image[enemy_bans_offset.y:int(h / 10), enemy_bans_offset.x:w - int(h / 4)].copy()
-        cuts.append(ImageCut(enemy_bans, Region.ENEMY_BANS, enemy_bans_offset))
+        enemy_bans = image[enemy_bans_offset.y:int(h / 10), enemy_bans_offset.x:w - int(h / 4)]
+        cuts.extend(
+            Detector.__get_ban_portrait_slices(enemy_bans, enemy_bans_offset, Region.ENEMY_BANS)
+        )
 
+        return cuts
+
+    @staticmethod
+    def __get_pick_portrait_slices(base_image: Any, base_offset: Point,
+                                   odd_multiplier: Tuple[float, float], even_multiplier: Tuple[float, float],
+                                   region: Region) -> List[ImageCut]:
+        cuts = []
+        h, w = base_image.shape[:2]
+        for idx in range(5):
+            # Portraits alternate
+            if idx % 2 == 1:
+                w_start = int(w * odd_multiplier[0])
+                w_end = int(w * odd_multiplier[1])
+            else:
+                w_start = int(w * even_multiplier[0])
+                w_end = int(w * even_multiplier[1])
+            portrait_cut_offset = Point(w_start, int(h / 5 * idx))
+            portrait_cut = base_image[portrait_cut_offset.y:int(h / 5 * (idx + 1)), portrait_cut_offset.x:w_end]
+            current_portrait_offset = utils.add_offset_to_point(base_offset, portrait_cut_offset)
+            cuts.append(ImageCut(portrait_cut, region, current_portrait_offset))
+        return cuts
+
+    @staticmethod
+    def __get_ban_portrait_slices(base_image: Any, base_offset: Point, region: Region):
+        cuts = []
+        h, w = base_image.shape[:2]
+        for idx in range(3):
+            portrait_cut_offset = Point(int(w / 3 * idx), 0)
+            portrait_cut = base_image[portrait_cut_offset.y:h, portrait_cut_offset.x:int(w / 3 * (idx + 1))]
+            current_portrait_offset = utils.add_offset_to_point(base_offset, portrait_cut_offset)
+            cuts.append(ImageCut(portrait_cut, region, current_portrait_offset))
         return cuts
 
     @staticmethod

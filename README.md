@@ -40,7 +40,6 @@ If you are working on developing a new layout, I suggest you switch to a Screens
 
 1. Heroes with portraits with little features (lookin at you Malthael) sometimes fail to be detected
 2. As of 2020-03-19, [hotsdraft.com](http://hotsdraft.com) does not include Deathwing
-3. False-positive detections which should be addressed by item 6 in "Things that I think are worth working on"
 
 ## Things that I think are worth working on
 
@@ -53,8 +52,5 @@ If you are working on developing a new layout, I suggest you switch to a Screens
 3. Add support for preferred role selection when submitting requests to [hotsdraft.com](http://hotsdraft.com).
 4. Add support for including pre-picks as ally picked heroes when checking suggestions.
 5. Move map detection to use SIFT oppose to Tessaract to speed up lookup/accuracy and remove a binary dependency.
-6. Slice up hero selection image into 5 rectangles instead of one large image with 5 portraits. Each rectangle would represent one portrait and 
-   the detection logic could be improved to permit only a single match with the highest number of matched features.
-7. Add support for auto-detection/auto-display when in draft. This should be done after 5 is done, effectively only in draft when
+6. Add support for auto-detection/auto-display when in draft. This should be done after 5 is done, effectively only in draft when
    found a valid map. This would also enable auto-hide when draft finishes. Enables auto-refreshing.
-8. Package the application with py2exe for novice users to download, use Github CI to produce that.
