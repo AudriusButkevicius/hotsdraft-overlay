@@ -5,7 +5,7 @@ from typing import Optional, List, Any, Tuple
 import cv2
 import numpy as np
 import pytesseract
-from fuzzywuzzy import fuzz
+from rapidfuzz import fuzz
 
 from hotsdraft_overlay import utils
 from hotsdraft_overlay.data import DataProvider
@@ -46,7 +46,7 @@ class Detector(object):
         best_map_name = None
         if game_map:
             for map_name in self.__data_provider.get_map_names():
-                score = fuzz.partial_ratio(map_name.lower(), game_map.lower())
+                score = fuzz.partial_ratio(map_name, game_map)
                 logging.debug("Got %d score for %s", score, map_name)
                 if score > best_score:
                     best_score = score
