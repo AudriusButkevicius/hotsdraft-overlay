@@ -12,7 +12,7 @@ PyQt5==5.14.1
 PyQt5-sip==12.7.1
 pytesseract==0.3.3
 # Providers win32gui which we can't get otherwise
-pywin32==227
+pywin32==301
 requests==2.23.0
 urllib3==1.26.5
 PyInstaller==3.6
