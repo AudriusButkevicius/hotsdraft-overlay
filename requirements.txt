@@ -4,7 +4,7 @@ Desktopmagic==14.3.11
 rapidfuzz==0.2.0
 idna==2.9
 keyboard==0.13.4
-numpy==1.18.1
+numpy==1.22.0
 # Need contrib instead of main module for additional features.
 opencv-contrib-python==4.2.0.32
 Pillow==9.0.0
